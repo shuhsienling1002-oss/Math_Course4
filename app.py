@@ -11,10 +11,10 @@ from typing import List, Dict
 MAX_LEVEL = 10
 
 # ==========================================
-# 1. 核心配置與 CSS (Fix: Division Visibility)
+# 1. 核心配置與 CSS (Fix: 核彈級 CSS 修復)
 # ==========================================
 st.set_page_config(
-    page_title="整數極限：向量超頻 v1.1",
+    page_title="整數極限：向量超頻 v1.2",
     page_icon="🚀",
     layout="centered"
 )
@@ -43,7 +43,7 @@ st.markdown("""
         align-items: center;
     }
 
-    /* 數線與向量 */
+    /* 數線 */
     .number-line {
         width: 100%; height: 4px; background: #475569;
         position: relative; margin: 20px 0;
@@ -57,40 +57,54 @@ st.markdown("""
         margin-top: 5px; text-shadow: 0 0 5px #facc15;
     }
 
-    /* [CRITICAL FIX] 按鈕樣式修復 */
+    /* [CRITICAL FIX v1.2] 強制覆蓋按鈕樣式 */
     
-    /* 1. 預設按鈕 (對應 Secondary/除法)：強制設為橘色 */
-    div.stButton > button {
-        background: linear-gradient(145deg, #c2410c, #9a3412) !important; /* 霓虹橘 */
-        border: 2px solid #f97316 !important;
-        color: #ffffff !important;
+    /* 1. 針對所有的 stButton 進行基礎重置 */
+    .stButton > button {
         border-radius: 8px !important;
         font-family: 'Courier New', monospace !important;
-        font-size: 1.2rem !important;
         font-weight: 900 !important;
+        font-size: 1.2rem !important;
         padding: 15px 10px !important;
         height: auto !important;
-        text-shadow: 0 1px 2px rgba(0,0,0,0.5);
-        transition: transform 0.1s;
+        transition: transform 0.1s !important;
+        color: #ffffff !important; /* 強制白字 */
     }
-    div.stButton > button:hover {
-        background: #ea580c !important;
-        transform: scale(1.02);
-        border-color: #ffedd5 !important;
+    
+    /* 針對按鈕內的文字元素也強制反白 (防止被 Streamlit 預設樣式覆蓋) */
+    .stButton > button p {
+        color: #ffffff !important;
     }
-    div.stButton > button:active { transform: scale(0.98); }
 
-    /* 2. Primary 按鈕 (對應 Multiplication/乘法)：覆蓋為紫色 */
-    /* 同時使用多種選擇器以確保覆蓋 Streamlit 的預設樣式 */
-    div.stButton > button[kind="primary"],
-    div.stButton > button[data-testid="baseButton-primary"] {
-        background: linear-gradient(145deg, #7e22ce, #6b21a8) !important; /* 霓虹紫 */
-        border: 2px solid #a855f7 !important;
+    /* 2. 除法卡 (Secondary Button) - 強制橘色 */
+    /* 同時鎖定 kind 屬性和 data-testid 以確保命中 */
+    .stButton > button[kind="secondary"],
+    .stButton > button[data-testid="baseButton-secondary"] {
+        background-color: #ea580c !important; /* 保底色 */
+        background-image: linear-gradient(145deg, #c2410c, #9a3412) !important;
+        border: 2px solid #f97316 !important;
+        opacity: 1 !important;
     }
-    div.stButton > button[kind="primary"]:hover,
-    div.stButton > button[data-testid="baseButton-primary"]:hover {
-        background: #9333ea !important;
+    .stButton > button[kind="secondary"]:hover,
+    .stButton > button[data-testid="baseButton-secondary"]:hover {
+        background-color: #f97316 !important;
+        border-color: #ffedd5 !important;
+        transform: scale(1.02);
+    }
+
+    /* 3. 乘法卡 (Primary Button) - 強制紫色 */
+    .stButton > button[kind="primary"],
+    .stButton > button[data-testid="baseButton-primary"] {
+        background-color: #7e22ce !important;
+        background-image: linear-gradient(145deg, #7e22ce, #6b21a8) !important;
+        border: 2px solid #a855f7 !important;
+        opacity: 1 !important;
+    }
+    .stButton > button[kind="primary"]:hover,
+    .stButton > button[data-testid="baseButton-primary"]:hover {
+        background-color: #9333ea !important;
         border-color: #e9d5ff !important;
+        transform: scale(1.02);
     }
 
     /* 狀態框 */
@@ -171,7 +185,6 @@ class VectorEngine:
             num = random.choice(cfg['nums'])
             if random.random() < cfg['neg_prob']: num = -num
             
-            # 整除保證
             if op_type == 'div':
                 if current % num != 0: op_type = 'mul'
             
@@ -214,13 +227,12 @@ class VectorEngine:
         
         def get_bar_style(val, is_target=False):
             w = abs(val) * scale_pct
-            # [FIX] 確保 Target 顏色正確，Current 顏色正確
             if not is_target:
                 if val > 0: color_css = "background: linear-gradient(90deg, #3b82f6, #60a5fa);"
                 elif val < 0: color_css = "background: linear-gradient(90deg, #ef4444, #f87171);"
                 else: return "display:none;"
             else:
-                color_css = "background: transparent;" # Target 是框線
+                color_css = "background: transparent;"
             
             style = f"position:absolute; top: {'40px' if is_target else '30px'}; height: {'16px' if is_target else '36px'}; width: {w}%;"
             
@@ -232,7 +244,6 @@ class VectorEngine:
                 style += f"left: {50 - w}%; border-radius: 4px 0 0 4px;"
                 if is_target: style += "border: 2px dashed #fca5a5;"
                 else: style += f"{color_css} box-shadow: 0 0 15px rgba(239, 68, 68, 0.4); z-index: 2;"
-                
             return style
 
         current_bar = get_bar_style(current, False)
@@ -409,9 +420,8 @@ def main():
             cols = st.columns(4)
             for i, card in enumerate(hand):
                 with cols[i % 4]:
-                    # Primary = Multiplication (Purple), Secondary = Division (Orange)
                     btn_type = "primary" if card.op == 'mul' else "secondary"
-                    # 使用 type 來觸發 Streamlit 的 class，配合我們的 CSS 覆蓋
+                    # 使用 key 來區分，type 傳遞給 Streamlit (雖然 CSS 已經強制接管)
                     if st.button(card.display_text, key=f"card_{card.id}", type=btn_type, help=card.help_text, use_container_width=True):
                         game.play_card(i)
                         st.rerun()
