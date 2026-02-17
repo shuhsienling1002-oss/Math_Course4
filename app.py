@@ -17,7 +17,7 @@ st.set_page_config(
 )
 
 # ==========================================
-# 1. 核心配置與 Mobile-First CSS
+# 1. 核心配置與 Mobile-First CSS (核彈級修復版)
 # ==========================================
 st.markdown("""
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
@@ -68,6 +68,7 @@ st.markdown("""
     }
 
     /* --- 按鈕核心 (Touch Friendly) --- */
+    /* [CRITICAL FIX] 強制覆蓋按鈕樣式 */
     .stButton > button {
         width: 100% !important;
         border-radius: 12px !important;
@@ -79,8 +80,14 @@ st.markdown("""
         height: auto !important;
         box-shadow: 0 4px 0 rgba(0,0,0,0.2) !important; /* 實體按壓感 */
         transition: all 0.1s !important;
+        color: #ffffff !important; /* 強制白字 */
+    }
+    
+    /* 針對按鈕內的文字元素也強制反白 */
+    .stButton > button p {
         color: #ffffff !important;
     }
+
     .stButton > button:active {
         transform: translateY(4px) !important;
         box-shadow: none !important;
@@ -117,14 +124,21 @@ st.markdown("""
     .status-success { background: rgba(2, 44, 34, 0.9); border: 1px solid #4ade80; color: #4ade80; }
     .status-error { background: rgba(69, 10, 10, 0.9); border: 1px solid #f87171; color: #fca5a5; }
 
-    /* --- 數學算式 --- */
+    /* --- 數學算式 (人類可讀版) --- */
     .math-display {
-        font-size: 1.3rem; font-family: monospace;
-        color: #e2e8f0; background: #0f172a;
-        padding: 12px; border-radius: 8px;
-        border-left: 4px solid #f59e0b;
-        margin-top: 10px; overflow-x: auto; /* 防止手機溢出 */
+        font-size: 1.4rem; 
+        font-family: 'Courier New', monospace;
+        font-weight: bold;
+        color: #e2e8f0; 
+        background: #0f172a;
+        padding: 15px; 
+        border-radius: 12px;
+        border: 1px solid #334155;
+        border-left: 6px solid #f59e0b;
+        margin-top: 15px; 
+        overflow-x: auto; /* 防止手機溢出 */
         white-space: nowrap;
+        letter-spacing: 1px;
     }
     
     @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
@@ -143,13 +157,14 @@ class OpCard:
 
     @property
     def display_text(self) -> str:
+        # 這裡也同步使用人類可讀符號
         symbol = "×" if self.op == 'mul' else "÷"
         num_str = f"({self.val})" if self.val < 0 else f"{self.val}"
         return f"{symbol} {num_str}"
     
     @property
     def help_text(self) -> str:
-        return "" # 手機版移除 tooltip，改用直觀設計
+        return "" # 手機版移除 tooltip
 
 # ==========================================
 # 3. 核心引擎 (Logic Core)
@@ -158,7 +173,7 @@ class OpCard:
 class VectorEngine:
     @staticmethod
     def generate_level(level: int) -> dict:
-        # 難度配置 (保持不變)
+        # 難度配置 (完整保留)
         config = {
             1: {'steps': 1, 'ops': ['mul'], 'nums': [2, 3, 4, 5], 'neg_prob': 0.0, 'title': "L1: 引擎啟動"},
             2: {'steps': 1, 'ops': ['mul'], 'nums': [2, 3, 4], 'neg_prob': 1.0, 'title': "L2: 反向推進"},
@@ -273,10 +288,14 @@ class VectorEngine:
         return html
 
     @staticmethod
-    def generate_equation_latex(start: int, history: List[OpCard]) -> str:
+    def generate_equation_human(start: int, history: List[OpCard]) -> str:
+        """
+        生成人類可讀的算式字串，例如: 2 × (-3) ÷ 4
+        """
         eq_str = f"{start}"
         for card in history:
-            symbol = "\\times" if card.op == 'mul' else "\\div"
+            symbol = "×" if card.op == 'mul' else "÷"
+            # 負數加括號，正數直接顯示
             val_str = f"({card.val})" if card.val < 0 else f"{card.val}"
             eq_str += f" {symbol} {val_str}"
         return eq_str
@@ -417,9 +436,9 @@ def main():
     vector_html = VectorEngine.generate_vector_html(current, target)
     st.markdown(f'<div class="vector-scope">{vector_html}</div>', unsafe_allow_html=True)
     
-    # Equation
-    latex_eq = VectorEngine.generate_equation_latex(st.session_state.start_val, st.session_state.history)
-    st.markdown(f'<div class="math-display">$${latex_eq} = {current}$$</div>', unsafe_allow_html=True)
+    # Equation (使用人類可讀版)
+    human_eq = VectorEngine.generate_equation_human(st.session_state.start_val, st.session_state.history)
+    st.markdown(f'<div class="math-display">{human_eq} = {current}</div>', unsafe_allow_html=True)
 
     # Controls Area
     st.markdown("---")
